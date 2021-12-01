@@ -9,5 +9,12 @@
         }
     },
     "minimum-stability": "stable",
-    "require": {}
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.3",
+        "phpunit/phpunit": "^9.5"
+    },
+    "require": {
+        "nyholm/psr7-server": "^1.0",
+        "nyholm/psr7": "^1.4"
+    }
 }
