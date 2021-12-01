@@ -1,0 +1,13 @@
+{
+    "name": "kdevy/phpfw3-libs",
+    "description": "My original php framework library.",
+    "type": "vsc",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Kdevy\\Phpfw3Libs\\": "src/"
+        }
+    },
+    "minimum-stability": "stable",
+    "require": {}
+}
