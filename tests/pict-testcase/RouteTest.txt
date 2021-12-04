@@ -1,0 +1,2 @@
+型: 文字列, 配列, オブジェクト
+URL: /, /action, /module/, /module/action, /module/action/hoge, /?key=value, /action?key=value, /module/?key=value, /module/action?key=value, /module/action/hoge?key=value
