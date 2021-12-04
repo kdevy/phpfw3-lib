@@ -102,6 +102,19 @@ class RouteTest extends TestCase
     }
 
     /**
+     * @param string $expected
+     * @param string|array|ServerRequestInterface $requestPath
+     * @return void
+     * 
+     * @dataProvider getGetPathNamePatterns
+     */
+    public function testGetPathName(string $expected, string|array|ServerRequestInterface $requestPath): void
+    {
+        $route = new Route($requestPath);
+        $this->assertSame($expected, $route->getPathName());
+    }
+
+    /**
      * @return void
      */
     public function testOccurRouteParseErrorByModuleName(): void
@@ -221,6 +234,53 @@ class RouteTest extends TestCase
         return array_map(
             fn ($expectedModuleName, $requestPath) => [$expectedModuleName, $requestPath],
             $expectedActionNames,
+            $requestPathPatterns
+        );
+    }
+
+    /**
+     * getRequestPathPatterns()のパターンリストとそのパス名の期待値を取得します。
+     * 
+     * @return array
+     */
+    public function getGetPathNamePatterns(): array
+    {
+        $requestPathPatterns = $this->getRequestPathPatterns();
+        $expectedPathNames = [
+            // 文字列
+            "/index/index",
+            "/index/index",
+            "/index/action",
+            "/index/action",
+            "/module/index",
+            "/module/index",
+            "/module/action",
+            "/module/action",
+            "/module/action",
+            "/module/action",
+            // 配列
+            "/index/index",
+            "/index/index",
+            "/index/action",
+            "/module/index",
+            "/module/action",
+            "/module/action",
+            // オブジェクト
+            "/index/index",
+            "/index/index",
+            "/index/action",
+            "/index/action",
+            "/module/index",
+            "/module/index",
+            "/module/action",
+            "/module/action",
+            "/module/action",
+            "/module/action",
+        ];
+
+        return array_map(
+            fn ($expectedPathName, $requestPath) => [$expectedPathName, $requestPath],
+            $expectedPathNames,
             $requestPathPatterns
         );
     }
