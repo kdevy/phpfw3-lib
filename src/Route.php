@@ -18,12 +18,11 @@ declare(strict_types=1);
 namespace Kdevy\Phpfw3Lib;
 
 use Kdevy\Phpfw3Lib\Interfaces\RouteInterface;
+use Kdevy\Phpfw3Lib\Exceptions\RouteParseError;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * このフレームワークではリクエストURLパスはモジュール名とアクション名の二階層で構成されます。
- * 
- * 通常、Psr\Http\Message\ServerRequestInterfaceの属性としてセットされ、アプリケーション内部で参照されます。
+ * このフレームワークでのルートとは、モジュール名とアクション名の二階層で構成されるリクエストパスを意味します。
  */
 class Route implements RouteInterface
 {
@@ -86,20 +85,29 @@ class Route implements RouteInterface
     }
 
     /**
-     * 空文字列、空配列はドキュメントルート(/)として解釈されます。
+     * リクエストパスをモジュール名とアクション名に分解します。
      *
-     * @param string|array|ServerRequestInterface $requestPath
-     * @return array
+     * 空文字列、空配列はドキュメントルート(/)として解釈されます。
+     * ドキュメントルートのモジュール名、アクション名は"index"になります。また、アクション名の指定が無い場合は"index"になります。
+     * 三階層目以降("hoge"以降の文字列)のパスは無視されます。(/module/action/hoge/..)
+     * 
+     * モジュール名またはアクション名に使用できない文字が含まれる場合は RouteParseError の例外が発生します。
+     * 三階層目以降に使用できない文字が含まれている場合は例外は発生しません。
+     * モジュール名とアクション名は大文字と小文字を区別しません。
+     *
+     * @param string|array<int,string>|ServerRequestInterface $requestPath
+     * @return array<int,string> 一要素目: モジュール名、二要素目： アクション名
+     * @throws RouteParseError
      */
     public static function parseRequestPath(string|array|ServerRequestInterface $requestPath): array
     {
+        $result = ["", ""];
+
         if ($requestPath instanceof ServerRequestInterface) {
             $requestPath = $requestPath->getUri()->getPath();
         }
 
-        if (!$requestPath) {
-            $requestPath = "/";
-        }
+        $requestPath = ($requestPath ? $requestPath : "/");
 
         $pathNodes = $requestPath;
 
@@ -108,14 +116,54 @@ class Route implements RouteInterface
             array_shift($pathNodes);
         }
 
+        $pathNodes = array_map("self::formatName", array_slice($pathNodes, 0, 2));
+
         if (count($pathNodes) == 1) {
-            $pathNodes[1] = (isset($pathNodes[0]) && trim($pathNodes[0]) !== "" ? $pathNodes[0] : "index");
-            $pathNodes[0] = "index";
+            $result[1] = (isset($pathNodes[0]) && $pathNodes[0] !== "" ? $pathNodes[0] : "index");
+            $result[0] = "index";
         } else {
-            $pathNodes[0] = (isset($pathNodes[0]) && trim($pathNodes[0]) !== "" ? $pathNodes[0] : "index");
-            $pathNodes[1] = (isset($pathNodes[1]) && trim($pathNodes[1]) !== "" ? $pathNodes[1] : "index");
+            $result[0] = (isset($pathNodes[0]) && $pathNodes[0] !== "" ? $pathNodes[0] : "index");
+            $result[1] = (isset($pathNodes[1]) && $pathNodes[1] !== "" ? $pathNodes[1] : "index");
         }
 
-        return [basename(trim($pathNodes[0])), basename(trim($pathNodes[1]))];
+        if (!self::isValidModuleName($result[0])) {
+            throw new RouteParseError("Invalid for the module name '{$result[0]}'.");
+        }
+        if (!self::isValidActionName($result[1])) {
+            throw new RouteParseError("Invalid for the action name '{$result[1]}'.");
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param string $module_or_action_name
+     * @return string
+     */
+    static public function formatName(string $module_or_action_name): string
+    {
+        return basename(trim(strtolower($module_or_action_name)));
+    }
+
+    /**
+     * モジュール名として使用できる文字列は、任意のアルファベット/数字/アンダースコア/ハイフンの文字列です。
+     *
+     * @param string $module_name
+     * @return boolean
+     */
+    static public function isValidModuleName(string $module_name): bool
+    {
+        return preg_match('/^[a-zA-Z0-9_\-]*$/', $module_name) === 1;
+    }
+
+    /**
+     * アクション名として使用できる文字列は、先頭がアルファベットあるいはアンダースコアで始まり、その後に任意の数のアルファベット/数字/アンダースコアが続くものです。
+     * 
+     * @param string $action_name
+     * @return boolean
+     */
+    static public function isValidActionName(string $action_name): bool
+    {
+        return preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $action_name) === 1;
     }
 }
